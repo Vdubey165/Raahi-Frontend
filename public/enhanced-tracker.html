@@ -1,0 +1,1945 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Raahi - Real-Time Bus Tracking</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        :root {
+            --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #48bb78;
+            --warning-color: #ed8936;
+            --danger-color: #f56565;
+            --info-color: #38b2ac;
+            --light-bg: rgba(255, 255, 255, 0.95);
+            --card-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            --card-border: 1px solid rgba(255, 255, 255, 0.2);
+            --transition: all 0.3s ease;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: var(--primary-gradient);
+            min-height: 100vh;
+            color: #1a202c;
+        }
+
+        /* Authentication Styles */
+        .auth-container {
+            display: flex;
+            min-height: 100vh;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .auth-card {
+            background: var(--light-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: var(--card-shadow);
+            border: var(--card-border);
+            width: 100%;
+            max-width: 400px;
+        }
+
+        .auth-header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .auth-logo {
+            width: 60px;
+            height: 60px;
+            background: var(--primary-gradient);
+            border-radius: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 28px;
+            color: white;
+        }
+
+        .auth-title {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 10px;
+        }
+
+        .auth-subtitle {
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #374151;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            transition: var(--transition);
+        }
+
+        .form-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-select {
+            width: 100%;
+            padding: 12px 15px;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            font-size: 14px;
+            background: white;
+            cursor: pointer;
+        }
+
+        .auth-button {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary-gradient);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: var(--transition);
+            margin-bottom: 15px;
+        }
+
+        .auth-button:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3);
+        }
+
+        .auth-link {
+            text-align: center;
+            color: #64748b;
+            font-size: 14px;
+        }
+
+        .auth-link a {
+            color: var(--primary-color);
+            text-decoration: none;
+            font-weight: 500;
+        }
+
+        /* Header */
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            box-shadow: 0 4px 30px rgba(0, 0, 0, 0.1);
+            padding: 15px 0;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1000;
+        }
+
+        .header-content {
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .logo h1 {
+            font-size: 28px;
+            font-weight: 700;
+            background: var(--primary-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .logo-icon {
+            width: 50px;
+            height: 50px;
+            background: var(--primary-gradient);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+        }
+
+        .user-info {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            background: rgba(248, 250, 252, 0.8);
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        /* Dashboard */
+        .dashboard {
+            margin-top: 80px;
+            padding: 20px;
+            max-width: 1400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        /* Stats Cards */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: var(--light-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: var(--card-shadow);
+            border: var(--card-border);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .stat-icon {
+            width: 50px;
+            height: 50px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 20px;
+            color: white;
+        }
+
+        .stat-value {
+            font-size: 32px;
+            font-weight: 700;
+            color: #1a202c;
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            color: #64748b;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .stat-change {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 12px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+
+        .stat-change.positive {
+            color: var(--success-color);
+        }
+
+        /* Content Grid */
+        .content-grid {
+            display: grid;
+            grid-template-columns: 1fr 400px;
+            gap: 20px;
+            height: calc(100vh - 200px);
+        }
+
+        /* Map Section */
+        .map-section {
+            background: var(--light-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: var(--card-shadow);
+            position: relative;
+        }
+
+        .map-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: rgba(248, 250, 252, 0.5);
+        }
+
+        .map-header h3 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .map-controls {
+            display: flex;
+            gap: 10px;
+        }
+
+        .control-btn {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(102, 126, 234, 0.1);
+            color: var(--primary-color);
+            cursor: pointer;
+            transition: var(--transition);
+            font-size: 12px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .control-btn:hover {
+            background: var(--primary-color);
+            color: white;
+        }
+
+        #map {
+            height: calc(100% - 70px);
+            width: 100%;
+            min-height: 400px;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* Panel Styles */
+        .panel {
+            background: var(--light-bg);
+            backdrop-filter: blur(20px);
+            border-radius: 16px;
+            box-shadow: var(--card-shadow);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            background: rgba(248, 250, 252, 0.5);
+        }
+
+        .panel-header h3 {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a202c;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .panel-content {
+            max-height: 300px;
+            overflow-y: auto;
+        }
+
+        /* Route and Bus Items */
+        .route-item, .bus-item {
+            padding: 16px 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+            cursor: pointer;
+            transition: var(--transition);
+        }
+
+        .route-item:hover, .bus-item:hover {
+            background: rgba(102, 126, 234, 0.05);
+        }
+
+        .route-item.active, .bus-item.selected {
+            background: linear-gradient(135deg, rgba(102, 126, 234, 0.1), rgba(118, 75, 162, 0.1));
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .route-name, .bus-name {
+            font-weight: 600;
+            color: #1a202c;
+            margin-bottom: 5px;
+        }
+
+        .route-info, .bus-info {
+            font-size: 12px;
+            color: #64748b;
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .status-active {
+            background: rgba(72, 187, 120, 0.1);
+            color: var(--success-color);
+        }
+
+        .status-idle {
+            background: rgba(237, 137, 54, 0.1);
+            color: var(--warning-color);
+        }
+
+        /* ETA Panel */
+        .eta-panel {
+            background: var(--primary-gradient);
+            color: white;
+            text-align: center;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .eta-content {
+            position: relative;
+            z-index: 1;
+            padding: 24px 20px;
+        }
+
+        .eta-time {
+            font-size: 28px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .eta-label {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        /* Driver Controls */
+        .driver-controls {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            padding: 20px;
+        }
+
+        .driver-btn {
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: var(--transition);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+
+        .driver-btn.primary {
+            background: var(--primary-gradient);
+            color: white;
+        }
+
+        .driver-btn.secondary {
+            background: #f8fafc;
+            color: #64748b;
+            border: 1px solid #e2e8f0;
+        }
+
+        .driver-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        /* Search Box */
+        .search-box {
+            padding: 15px 20px;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.5);
+            background: rgba(248, 250, 252, 0.5);
+        }
+
+        .search-input {
+            width: 100%;
+            padding: 10px 15px;
+            border-radius: 8px;
+            border: 1px solid rgba(203, 213, 225, 0.5);
+            font-size: 14px;
+            background: white;
+        }
+
+        .search-input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        /* Toast Notifications */
+        .toast-container {
+            position: fixed;
+            top: 100px;
+            right: 20px;
+            z-index: 2000;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toast {
+            padding: 12px 20px;
+            border-radius: 8px;
+            background: white;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            animation: slideIn 0.3s ease-out;
+            max-width: 350px;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .toast.success {
+            border-left: 4px solid var(--success-color);
+        }
+
+        .toast.error {
+            border-left: 4px solid var(--danger-color);
+        }
+
+        .toast.info {
+            border-left: 4px solid var(--primary-color);
+        }
+
+        /* Hide/Show based on user type */
+        .hidden {
+            display: none !important;
+        }
+
+        /* Responsive Design */
+        @media (max-width: 1024px) {
+            .content-grid {
+                grid-template-columns: 1fr;
+                height: auto;
+            }
+
+            .sidebar {
+                grid-row: 1;
+            }
+
+            .map-section {
+                height: 500px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .header-content {
+                flex-direction: column;
+                gap: 15px;
+                text-align: center;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .dashboard {
+                padding: 15px;
+            }
+            
+            .map-header {
+                flex-direction: column;
+                gap: 10px;
+                align-items: flex-start;
+            }
+            
+            .map-controls {
+                width: 100%;
+                justify-content: space-between;
+            }
+            
+            .control-btn {
+                flex: 1;
+                text-align: center;
+            }
+
+            .driver-controls {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Toast Container -->
+    <div class="toast-container" id="toastContainer"></div>
+
+    <!-- Authentication Screen -->
+    <div id="authScreen" class="auth-container">
+        <div class="auth-card">
+            <div class="auth-header">
+                <div class="auth-logo">
+                    <i class="fas fa-bus"></i>
+                </div>
+                <h2 class="auth-title">Raahi</h2>
+                <p class="auth-subtitle">Real-Time Bus Tracking System</p>
+            </div>
+
+            <!-- Login Form -->
+            <div id="loginForm">
+                <form onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="loginEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="loginPassword" required>
+                    </div>
+                    <button type="submit" class="auth-button">Sign In</button>
+                </form>
+                <div class="auth-link">
+                    Don't have an account? <a href="#" onclick="showSignup()">Sign up</a>
+                </div>
+            </div>
+
+            <!-- Signup Form -->
+            <div id="signupForm" class="hidden">
+                <form onsubmit="handleSignup(event)">
+                    <div class="form-group">
+                        <label class="form-label">Full Name</label>
+                        <input type="text" class="form-input" id="signupName" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Email</label>
+                        <input type="email" class="form-input" id="signupEmail" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="signupPassword" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Account Type</label>
+                        <select class="form-select" id="signupRole" required>
+                            <option value="">Select your role</option>
+                            <option value="passenger">Passenger</option>
+                            <option value="driver">Bus Driver</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="auth-button">Create Account</button>
+                </form>
+                <div class="auth-link">
+                    Already have an account? <a href="#" onclick="showLogin()">Sign in</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main Dashboard -->
+    <div id="dashboardScreen" class="hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="header-content">
+                <div class="logo">
+                    <div class="logo-icon">
+                        <i class="fas fa-bus"></i>
+                    </div>
+                    <div>
+                        <h1>Raahi</h1>
+                        <p style="font-size: 14px; color: #64748b; margin: 0;">Real-Time Bus Tracking</p>
+                    </div>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="userName">John Doe</span>
+                        <span id="userRole" style="color: #64748b; font-size: 12px;">(Passenger)</span>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt"></i> Logout
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Dashboard -->
+        <div class="dashboard">
+            <!-- Stats Cards -->
+            <div class="stats-grid">
+                <!-- Passenger Stats -->
+                <div class="stat-card passenger-only">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #48bb78, #38a169);">
+                            <i class="fas fa-bus"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalBuses">3</div>
+                    <div class="stat-label">Active Buses</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-check-circle"></i>
+                        <span>All Operational</span>
+                    </div>
+                </div>
+
+                <div class="stat-card passenger-only">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #667eea, #764ba2);">
+                            <i class="fas fa-route"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalRoutes">2</div>
+                    <div class="stat-label">Available Routes</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-map-marked-alt"></i>
+                        <span>City Coverage</span>
+                    </div>
+                </div>
+
+                <div class="stat-card passenger-only">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #38b2ac, #319795);">
+                            <i class="fas fa-clock"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="avgWaitTime">8</div>
+                    <div class="stat-label">Avg Wait Time (min)</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-thumbs-up"></i>
+                        <span>On Schedule</span>
+                    </div>
+                </div>
+
+                <!-- Driver Stats -->
+                <div class="stat-card driver-only hidden">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #48bb78, #38a169);">
+                            <i class="fas fa-road"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="totalTrips">24</div>
+                    <div class="stat-label">Trips Today</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-arrow-up"></i>
+                        <span>+3 from yesterday</span>
+                    </div>
+                </div>
+
+                <div class="stat-card driver-only hidden">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #667eea, #764ba2);">
+                            <i class="fas fa-users"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="passengersServed">142</div>
+                    <div class="stat-label">Passengers Served</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-chart-line"></i>
+                        <span>Daily Total</span>
+                    </div>
+                </div>
+
+                <div class="stat-card driver-only hidden">
+                    <div class="stat-card-header">
+                        <div class="stat-icon" style="background: linear-gradient(45deg, #38b2ac, #319795);">
+                            <i class="fas fa-tachometer-alt"></i>
+                        </div>
+                    </div>
+                    <div class="stat-value" id="avgSpeed">23</div>
+                    <div class="stat-label">Avg Speed (km/h)</div>
+                    <div class="stat-change positive">
+                        <i class="fas fa-check"></i>
+                        <span>Within Limits</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- SMS Subscription Section (Passenger Only) -->
+            <div class="panel passenger-only" style="margin-bottom: 20px;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-mobile-alt"></i> SMS Notifications</h3>
+                </div>
+                <div class="panel-content" style="padding: 20px;">
+                    <p style="margin-bottom: 15px; color: #64748b; font-size: 14px;">
+                        Get bus updates via SMS when internet connectivity is poor
+                    </p>
+                    
+                    <div style="display: flex; gap: 10px; margin-bottom: 15px;">
+                        <input 
+                            type="tel" 
+                            id="smsPhoneNumber" 
+                            placeholder="+91 9876543210" 
+                            style="flex: 1; padding: 10px; border: 1px solid #e2e8f0; border-radius: 8px; font-size: 14px;"
+                        >
+                        <button 
+                            onclick="subscribeToSMS()" 
+                            style="padding: 10px 15px; background: var(--primary-gradient); color: white; border: none; border-radius: 8px; cursor: pointer; font-weight: 500;"
+                        >
+                            <i class="fas fa-bell"></i> Subscribe
+                        </button>
+                    </div>
+                    
+                    <div id="smsStatus" style="font-size: 13px; color: #64748b;"></div>
+                </div>
+            </div>
+
+            <!-- Driver Controls (Driver Only) -->
+            <div class="panel driver-only hidden" style="margin-bottom: 20px;">
+                <div class="panel-header">
+                    <h3><i class="fas fa-steering-wheel"></i> Driver Controls</h3>
+                </div>
+                <div class="driver-controls">
+                    <button class="driver-btn primary" onclick="startTrip()">
+                        <i class="fas fa-play"></i> Start Trip
+                    </button>
+                    <button class="driver-btn secondary" onclick="pauseTrip()">
+                        <i class="fas fa-pause"></i> Pause Trip
+                    </button>
+                    <button class="driver-btn secondary" onclick="reportIssue()">
+                        <i class="fas fa-exclamation-triangle"></i> Report Issue
+                    </button>
+                    <button class="driver-btn secondary" onclick="endTrip()">
+                        <i class="fas fa-stop"></i> End Trip
+                    </button>
+                </div>
+            </div>
+
+            <!-- Main Content -->
+            <div class="content-grid">
+                <!-- Map Section -->
+                <div class="map-section">
+                    <div class="map-header">
+                        <h3>
+                            <i class="fas fa-map-marked-alt"></i>
+                            Live Bus Tracking
+                        </h3>
+                        <div class="map-controls">
+                            <button class="control-btn" onclick="fitMapToAllBuses()">
+                                <i class="fas fa-expand-arrows-alt"></i> Fit All
+                            </button>
+                            <button class="control-btn" onclick="centerOnUser()">
+                                <i class="fas fa-location-arrow"></i> My Location
+                            </button>
+                            <button class="control-btn" onclick="refreshMap()">
+                                <i class="fas fa-sync-alt"></i> Refresh
+                            </button>
+                        </div>
+                    </div>
+                    <div id="map"></div>
+                </div>
+
+                <!-- Sidebar -->
+                <div class="sidebar">
+                    <!-- Search Box -->
+                    <div class="panel">
+                        <div class="search-box">
+                            <input type="text" class="search-input" id="searchInput" placeholder="Search routes or buses...">
+                        </div>
+                    </div>
+
+                    <!-- Routes Panel -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-route"></i> Active Routes</h3>
+                        </div>
+                        <div class="panel-content" id="routesList">
+                            <!-- Routes will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- ETA Panel (Passenger Only) -->
+                    <div class="panel eta-panel passenger-only" id="etaPanel">
+                        <div class="eta-content">
+                            <div class="eta-time" id="etaTime">--</div>
+                            <div class="eta-label">minutes to next bus</div>
+                            <div style="margin-top: 10px; font-size: 12px; opacity: 0.8;">
+                                <i class="fas fa-bus"></i> <span id="etaBusInfo">Select a bus to see ETA</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Buses Panel -->
+                    <div class="panel">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-bus"></i> Live Buses</h3>
+                        </div>
+                        <div class="panel-content" id="busesList">
+                            <!-- Buses will be loaded here -->
+                        </div>
+                    </div>
+
+                    <!-- Driver Trip Status (Driver Only) -->
+                    <div class="panel driver-only hidden">
+                        <div class="panel-header">
+                            <h3><i class="fas fa-chart-line"></i> Trip Status</h3>
+                        </div>
+                        <div class="panel-content" style="padding: 20px;">
+                            <div style="text-align: center;">
+                                <div style="font-size: 24px; font-weight: 600; color: #1a202c;" id="tripStatus">Ready</div>
+                                <div style="color: #64748b; font-size: 14px; margin-top: 5px;" id="tripDuration">No active trip</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables
+        let map, userLocation, currentUser = null, selectedRoute, selectedBus;
+        let buses = [], routes = [];
+        let userMarker, busMarkers = {}, stopMarkers = {};
+        let routePolylines = {};
+        let watchId = null;
+        let currentTrip = null;
+
+        // Sample data
+        const sampleRoutes = [
+            {
+                routeId: "R001",
+                routeName: "City Center - Airport",
+                stops: [
+                    { stopId: "S001", stopName: "Central Bus Station", coordinates: { lat: 28.6139, lng: 77.2090 }, order: 1 },
+                    { stopId: "S002", stopName: "Connaught Place", coordinates: { lat: 28.6315, lng: 77.2167 }, order: 2 },
+                    { stopId: "S003", stopName: "AIIMS Metro", coordinates: { lat: 28.5687, lng: 77.2077 }, order: 3 },
+                    { stopId: "S004", stopName: "IGI Airport Terminal 1", coordinates: { lat: 28.5665, lng: 77.1031 }, order: 4 }
+                ],
+                operatingHours: { start: "05:00", end: "23:00" },
+                frequency: 15,
+                isActive: true,
+                color: "#667eea"
+            },
+            {
+                routeId: "R002", 
+                routeName: "University Route",
+                stops: [
+                    { stopId: "S101", stopName: "Delhi University", coordinates: { lat: 28.6967, lng: 77.2094 }, order: 1 },
+                    { stopId: "S102", stopName: "Kamla Nagar", coordinates: { lat: 28.6758, lng: 77.2109 }, order: 2 },
+                    { stopId: "S103", stopName: "Civil Lines", coordinates: { lat: 28.6769, lng: 77.2224 }, order: 3 },
+                    { stopId: "S104", stopName: "Red Fort", coordinates: { lat: 28.6562, lng: 77.2410 }, order: 4 }
+                ],
+                operatingHours: { start: "06:00", end: "22:00" },
+                frequency: 20,
+                isActive: true,
+                color: "#ed8936"
+            }
+        ];
+
+        const sampleBuses = [
+            {
+                busNumber: "DL-1234",
+                routeId: "R001",
+                driverName: "Rajesh Kumar",
+                capacity: 40,
+                currentOccupancy: 15,
+                coordinates: { lat: 28.6139, lng: 77.2090 },
+                status: "active",
+                speed: 25,
+                lastUpdated: new Date(),
+                nextStop: "S002"
+            },
+            {
+                busNumber: "DL-5678",
+                routeId: "R001", 
+                driverName: "Suresh Singh",
+                capacity: 45,
+                currentOccupancy: 32,
+                coordinates: { lat: 28.6315, lng: 77.2167 },
+                status: "active",
+                speed: 18,
+                lastUpdated: new Date(),
+                nextStop: "S003"
+            },
+            {
+                busNumber: "DL-9012",
+                routeId: "R002",
+                driverName: "Amit Sharma",
+                capacity: 35,
+                currentOccupancy: 8,
+                coordinates: { lat: 28.6967, lng: 77.2094 },
+                status: "idle",
+                speed: 0,
+                lastUpdated: new Date(),
+                nextStop: "S102"
+            }
+        ];
+
+        // Toast notification function
+        function showToast(message, type = 'info') {
+            const toastContainer = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            
+            const icons = {
+                success: 'fa-check-circle',
+                error: 'fa-exclamation-circle',
+                info: 'fa-info-circle',
+                warning: 'fa-exclamation-triangle'
+            };
+            
+            toast.innerHTML = `
+                <i class="fas ${icons[type] || icons.info}"></i>
+                <span>${message}</span>
+            `;
+            
+            toastContainer.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.remove();
+            }, 4000);
+        }
+
+        // Authentication Functions
+        function showLogin() {
+            document.getElementById('loginForm').classList.remove('hidden');
+            document.getElementById('signupForm').classList.add('hidden');
+        }
+
+        function showSignup() {
+            document.getElementById('loginForm').classList.add('hidden');
+            document.getElementById('signupForm').classList.remove('hidden');
+        }
+
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            // Simple demo authentication
+            const demoUsers = {
+                'passenger@demo.com': { name: 'John Doe', role: 'passenger' },
+                'driver@demo.com': { name: 'Mike Wilson', role: 'driver' }
+            };
+
+            if (demoUsers[email] && password === 'demo123') {
+                currentUser = demoUsers[email];
+                showDashboard();
+                showToast('Login successful!', 'success');
+            } else {
+                showToast('Invalid credentials. Try passenger@demo.com or driver@demo.com with password "demo123"', 'error');
+            }
+        }
+
+        function handleSignup(event) {
+            event.preventDefault();
+            const name = document.getElementById('signupName').value;
+            const email = document.getElementById('signupEmail').value;
+            const role = document.getElementById('signupRole').value;
+
+            currentUser = { name, role };
+            showDashboard();
+            showToast('Account created successfully!', 'success');
+        }
+
+        function showDashboard() {
+            document.getElementById('authScreen').classList.add('hidden');
+            document.getElementById('dashboardScreen').classList.remove('hidden');
+            
+            // Update user info in header
+            document.getElementById('userName').textContent = currentUser.name;
+            document.getElementById('userRole').textContent = `(${currentUser.role.charAt(0).toUpperCase() + currentUser.role.slice(1)})`;
+            
+            // Show/hide role-specific elements
+            const passengerElements = document.querySelectorAll('.passenger-only');
+            const driverElements = document.querySelectorAll('.driver-only');
+            
+            if (currentUser.role === 'passenger') {
+                passengerElements.forEach(el => el.classList.remove('hidden'));
+                driverElements.forEach(el => el.classList.add('hidden'));
+            } else {
+                passengerElements.forEach(el => el.classList.add('hidden'));
+                driverElements.forEach(el => el.classList.remove('hidden'));
+            }
+            
+            // Initialize dashboard after DOM is ready
+            setTimeout(initializeApp, 100);
+        }
+
+        function logout() {
+            currentUser = null;
+            selectedRoute = null;
+            selectedBus = null;
+            currentTrip = null;
+            
+            // Clean up map
+            if (map) {
+                map.remove();
+                map = null;
+            }
+            
+            // Stop location tracking
+            if (watchId) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+            
+            document.getElementById('authScreen').classList.remove('hidden');
+            document.getElementById('dashboardScreen').classList.add('hidden');
+            showLogin();
+            showToast('Logged out successfully', 'info');
+        }
+
+        // SMS Functions (Passenger only)
+        async function subscribeToSMS() {
+            if (currentUser.role !== 'passenger') {
+                showToast('SMS notifications are only available for passengers', 'error');
+                return;
+            }
+
+            const phoneNumber = document.getElementById('smsPhoneNumber').value.trim();
+            const statusElement = document.getElementById('smsStatus');
+            
+            if (!phoneNumber) {
+                statusElement.innerHTML = '<span style="color: #f56565;">Please enter a phone number</span>';
+                return;
+            }
+            
+            if (!phoneNumber.startsWith('+')) {
+                statusElement.innerHTML = '<span style="color: #f56565;">Please include country code (e.g., +91)</span>';
+                return;
+            }
+            
+            statusElement.innerHTML = '<span style="color: #667eea;"><i class="fas fa-spinner fa-spin"></i> Subscribing...</span>';
+            
+            try {
+                const response = await fetch('http://localhost:4000/api/sms/subscribe', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phoneNumber: phoneNumber,
+                        preferences: {
+                            busUpdates: true,
+                            etaUpdates: true,
+                            emergencyAlerts: true,
+                            routeAlerts: true
+                        }
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    statusElement.innerHTML = '<span style="color: #48bb78;">✅ Subscribed successfully! You will receive SMS updates.</span>';
+                    document.getElementById('smsPhoneNumber').value = '';
+                } else {
+                    statusElement.innerHTML = `<span style="color: #f56565;">❌ ${result.message || 'Subscription failed'}</span>`;
+                }
+            } catch (error) {
+                console.error('SMS subscription error:', error);
+                statusElement.innerHTML = '<span style="color: #f56565;">❌ Network error. Please try again.</span>';
+            }
+        }
+
+        async function sendBusETAviaSMS(busNumber) {
+            if (currentUser.role !== 'passenger') return;
+
+            const phoneInput = document.getElementById('smsPhoneNumber');
+            const phoneNumber = phoneInput.value.trim();
+            
+            if (!phoneNumber) {
+                showToast('Please enter your phone number in SMS section first', 'error');
+                return;
+            }
+            
+            showToast(`Sending ETA for bus ${busNumber}...`, 'info');
+            
+            try {
+                const bus = buses.find(b => b.busNumber === busNumber);
+                if (!bus) {
+                    showToast('Bus not found', 'error');
+                    return;
+                }
+                
+                const route = routes.find(r => r.routeId === bus.routeId);
+                const distance = userLocation ? calculateDistance(userLocation, bus.coordinates) : 2;
+                const eta = Math.ceil(distance / (Math.max(bus.speed, 5) / 60));
+                
+                const response = await fetch('http://localhost:4000/api/sms/send-eta', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        phoneNumber: phoneNumber,
+                        busNumber: busNumber,
+                        eta: eta,
+                        routeName: route?.routeName || 'Unknown Route'
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    showToast(`ETA sent to ${phoneNumber}`, 'success');
+                } else {
+                    showToast('Failed to send SMS', 'error');
+                }
+            } catch (error) {
+                console.error('SMS send error:', error);
+                showToast('Error sending SMS', 'error');
+            }
+        }
+        // Driver Functions
+        function startTrip() {
+            if (currentUser.role !== 'driver') return;
+            
+            if (!userLocation) {
+                showToast('Please enable location access to start a trip', 'error');
+                return;
+            }
+            
+            currentTrip = {
+                startTime: new Date(),
+                status: 'in-progress'
+            };
+            
+            document.getElementById('tripStatus').textContent = 'Active Trip';
+            document.getElementById('tripDuration').textContent = 'Started just now';
+            
+            showToast('Trip started successfully', 'success');
+            startLocationTracking();
+        }
+        
+        function pauseTrip() {
+            if (!currentTrip) {
+                showToast('No active trip to pause', 'error');
+                return;
+            }
+            
+            currentTrip.status = 'paused';
+            document.getElementById('tripStatus').textContent = 'Trip Paused';
+            showToast('Trip paused', 'info');
+        }
+        
+        function endTrip() {
+            if (!currentTrip) {
+                showToast('No active trip to end', 'error');
+                return;
+            }
+            
+            currentTrip.endTime = new Date();
+            currentTrip.status = 'completed';
+            
+            const duration = Math.round((currentTrip.endTime - currentTrip.startTime) / 60000);
+            document.getElementById('tripStatus').textContent = 'Ready';
+            document.getElementById('tripDuration').textContent = 'No active trip';
+            
+            showToast(`Trip completed. Duration: ${duration} minutes`, 'success');
+            
+            currentTrip = null;
+            stopLocationTracking();
+        }
+        
+        function reportIssue() {
+            const issues = [
+                'Traffic congestion',
+                'Road construction',
+                'Vehicle maintenance needed',
+                'Route deviation required',
+                'Weather conditions'
+            ];
+            
+            const issue = issues[Math.floor(Math.random() * issues.length)];
+            showToast(`Issue reported: ${issue}`, 'info');
+        }
+
+        // Initialize the application
+        function initializeApp() {
+            try {
+                initMap();
+                getUserLocation();
+                loadSampleData();
+                displayRoutes();
+                displayBuses();
+                displayAllBusesOnMap();
+                updateStats();
+                setupSearch();
+                startSimulation();
+                showToast('Dashboard loaded successfully', 'success');
+            } catch (error) {
+                console.error('Error initializing app:', error);
+                showToast('Error loading dashboard. Please refresh the page.', 'error');
+            }
+        }
+
+        // Initialize Leaflet map
+        function initMap() {
+            try {
+                // Remove existing map if it exists
+                if (map) {
+                    map.remove();
+                }
+
+                map = L.map('map', {
+                    zoomControl: false,
+                    preferCanvas: true,
+                    minZoom: 10,
+                    maxBounds: [
+                        [28.4, 76.8],
+                        [28.9, 77.4]
+                    ],
+                    maxBoundsViscosity: 1.0
+                }).setView([28.6139, 77.2090], 11);
+                
+                L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                    attribution: '© OpenStreetMap contributors',
+                    maxZoom: 19
+                }).addTo(map);
+                
+                L.control.zoom({
+                    position: 'bottomright'
+                }).addTo(map);
+                
+                L.control.scale({imperial: false}).addTo(map);
+
+                // Invalidate size after a short delay to ensure proper rendering
+                setTimeout(() => {
+                    if (map) {
+                        map.invalidateSize();
+                    }
+                }, 250);
+                
+            } catch (error) {
+                console.error('Error initializing map:', error);
+                showToast('Map initialization failed', 'error');
+            }
+        }
+
+        // Add missing refreshMap function
+        function refreshMap() {
+            if (!map) return;
+            
+            try {
+                // Clear and reload all map data
+                displayAllBusesOnMap();
+                
+                // Force map refresh
+                map.invalidateSize();
+                
+                // Get fresh location if needed
+                if (currentUser && currentUser.role === 'driver' && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            userLocation = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            
+                            if (userMarker) {
+                                userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+                            }
+                        },
+                        (error) => {
+                            console.log('Location refresh failed:', error);
+                        }
+                    );
+                }
+                
+                showToast('Map refreshed', 'success');
+            } catch (error) {
+                console.error('Error refreshing map:', error);
+                showToast('Error refreshing map', 'error');
+            }
+        }
+
+        // Load sample data
+        function loadSampleData() {
+            routes = [...sampleRoutes];
+            buses = [...sampleBuses];
+        }
+
+        // Get user location
+        function getUserLocation() {
+            if (navigator.geolocation) {
+                navigator.geolocation.getCurrentPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        const userIcon = createCustomIcon(
+                            currentUser.role === 'driver' ? 'fa-car' : 'fa-user', 
+                            '#667eea'
+                        );
+                        
+                        if (userMarker && map) {
+                            map.removeLayer(userMarker);
+                        }
+                        
+                        if (map) {
+                            userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+                                .addTo(map)
+                                .bindPopup(currentUser.role === 'driver' ? 'Driver Location' : 'Your Location');
+                        }
+                        
+                        showToast('Location access granted', 'success');
+                    }, 
+                    (error) => {
+                        console.log('Location access denied, using default location');
+                        userLocation = { lat: 28.6139, lng: 77.2090 };
+                        showToast('Using default location', 'info');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 60000
+                    }
+                );
+            } else {
+                userLocation = { lat: 28.6139, lng: 77.2090 };
+                showToast('Geolocation not supported', 'error');
+            }
+        }
+
+        // Create custom map icon with FontAwesome icons
+        function createCustomIcon(iconClass, color = '#667eea') {
+            return L.divIcon({
+                html: `<div style="background: ${color}; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; border: 3px solid white; box-shadow: 0 4px 15px rgba(0,0,0,0.3); color: white;"><i class="fas ${iconClass}"></i></div>`,
+                className: 'custom-div-icon',
+                iconSize: [40, 40],
+                iconAnchor: [20, 20]
+            });
+        }
+
+        // Display routes in sidebar
+        function displayRoutes() {
+            const routesContainer = document.getElementById('routesList');
+            if (!routesContainer) return;
+            
+            routesContainer.innerHTML = '';
+            
+            routes.forEach(route => {
+                const routeDiv = document.createElement('div');
+                routeDiv.className = 'route-item';
+                routeDiv.setAttribute('data-route-id', route.routeId);
+                routeDiv.setAttribute('data-route-name', route.routeName.toLowerCase());
+                routeDiv.innerHTML = `
+                    <div class="route-name">${route.routeName}</div>
+                    <div class="route-info">
+                        <span><i class="fas fa-map-marker-alt"></i> ${route.stops.length} stops</span>
+                        <span><i class="fas fa-clock"></i> ${route.operatingHours.start}-${route.operatingHours.end}</span>
+                        <span><i class="fas fa-repeat"></i> Every ${route.frequency} mins</span>
+                    </div>
+                `;
+                routeDiv.onclick = () => selectRoute(route);
+                routesContainer.appendChild(routeDiv);
+            });
+        }
+
+        // Display buses in sidebar
+        function displayBuses() {
+            const busesContainer = document.getElementById('busesList');
+            if (!busesContainer) return;
+            
+            busesContainer.innerHTML = '';
+            
+            buses.forEach(bus => {
+                const route = routes.find(r => r.routeId === bus.routeId);
+                const busDiv = document.createElement('div');
+                busDiv.className = 'bus-item';
+                busDiv.setAttribute('data-bus-number', bus.busNumber.toLowerCase());
+                busDiv.setAttribute('data-route-name', route?.routeName.toLowerCase() || '');
+                busDiv.innerHTML = `
+                    <div class="bus-name">
+                        Bus #${bus.busNumber}
+                        <span class="status-badge status-${bus.status}">
+                            <i class="fas fa-circle"></i>
+                            ${bus.status.toUpperCase()}
+                        </span>
+                    </div>
+                    <div class="bus-info">
+                        <span><i class="fas fa-route"></i> ${route?.routeName || 'Unknown Route'}</span>
+                        <span><i class="fas fa-users"></i> ${bus.currentOccupancy}/${bus.capacity}</span>
+                        <span><i class="fas fa-tachometer-alt"></i> ${Math.round(bus.speed)} km/h</span>
+                    </div>
+                `;
+                busDiv.onclick = () => selectBus(bus);
+                busesContainer.appendChild(busDiv);
+            });
+        }
+
+        // Display all buses on map
+        function displayAllBusesOnMap() {
+            if (!map) return;
+            
+            // Clear existing markers
+            Object.values(busMarkers).forEach(marker => {
+                if (map.hasLayer(marker)) {
+                    map.removeLayer(marker);
+                }
+            });
+            Object.values(stopMarkers).forEach(marker => {
+                if (map.hasLayer(marker)) {
+                    map.removeLayer(marker);
+                }
+            });
+            Object.values(routePolylines).forEach(polyline => {
+                if (map.hasLayer(polyline)) {
+                    map.removeLayer(polyline);
+                }
+            });
+            
+            busMarkers = {};
+            stopMarkers = {};
+            
+            // Add route polylines and stops
+            routes.forEach(route => {
+                const routePoints = route.stops.map(stop => [stop.coordinates.lat, stop.coordinates.lng]);
+                routePolylines[route.routeId] = L.polyline(routePoints, {
+                    color: route.color,
+                    weight: 4,
+                    opacity: 0.7,
+                    dashArray: '5, 10'
+                }).addTo(map);
+                
+                route.stops.forEach(stop => {
+                    const stopIcon = createCustomIcon('fa-bus-alt', '#38b2ac');
+                    const marker = L.marker([stop.coordinates.lat, stop.coordinates.lng], { icon: stopIcon })
+                        .addTo(map)
+                        .bindPopup(`
+                            <div style="font-size: 14px;">
+                                <strong><i class="fas fa-bus-alt"></i> ${stop.stopName}</strong><br/>
+                                <div style="margin: 8px 0;">
+                                    <div><i class="fas fa-route"></i> Route: ${route.routeName}</div>
+                                    <div><i class="fas fa-list-ol"></i> Stop #${stop.order}</div>
+                                </div>
+                            </div>
+                        `);
+                    
+                    stopMarkers[stop.stopId] = marker;
+                });
+            });
+            
+            // Add bus markers
+            buses.forEach(bus => {
+                const route = routes.find(r => r.routeId === bus.routeId);
+                const color = bus.status === 'active' ? '#48bb78' : 
+                             bus.status === 'idle' ? '#ed8936' : '#f56565';
+                
+                const busIcon = createCustomIcon('fa-bus', color);
+                const etaButton = currentUser.role === 'passenger' ? 
+                    `<div style="margin-top: 10px; text-align: center;">
+                        <button onclick="sendBusETAviaSMS('${bus.busNumber}')" 
+                            style="padding: 8px 12px; background: var(--primary-gradient); color: white; border: none; border-radius: 6px; cursor: pointer; font-size: 12px; width: 100%;">
+                            <i class="fas fa-mobile-alt"></i> Send ETA via SMS
+                        </button>
+                    </div>` : '';
+                
+                const marker = L.marker([bus.coordinates.lat, bus.coordinates.lng], { icon: busIcon })
+                    .addTo(map)
+                    .bindPopup(`
+                        <div style="font-size: 14px; min-width: 200px;">
+                            <strong style="font-size: 16px;"><i class="fas fa-bus"></i> Bus #${bus.busNumber}</strong><br/>
+                            <div style="margin: 8px 0; padding: 8px; background: #f8fafc; border-radius: 8px;">
+                                <div><i class="fas fa-route"></i> Route: ${route?.routeName || 'Unknown'}</div>
+                                <div><i class="fas fa-circle" style="color: ${color}"></i> Status: <strong>${bus.status.toUpperCase()}</strong></div>
+                                <div><i class="fas fa-users"></i> Occupancy: ${bus.currentOccupancy}/${bus.capacity}</div>
+                                <div><i class="fas fa-tachometer-alt"></i> Speed: ${Math.round(bus.speed)} km/h</div>
+                                <div><i class="fas fa-user-tie"></i> Driver: ${bus.driverName}</div>
+                                <div><i class="fas fa-clock"></i> Updated: ${new Date(bus.lastUpdated).toLocaleTimeString()}</div>
+                            </div>
+                            ${bus.nextStop ? `<div><i class="fas fa-arrow-right"></i> Next stop: ${route?.stops.find(s => s.stopId === bus.nextStop)?.stopName || bus.nextStop}</div>` : ''}
+                            ${etaButton}
+                        </div>
+                    `);
+                
+                busMarkers[bus.busNumber] = marker;
+            });
+        }
+
+        // Select a route
+        function selectRoute(route) {
+            selectedRoute = route;
+            
+            document.querySelectorAll('.route-item').forEach(item => item.classList.remove('active'));
+            event.target.closest('.route-item').classList.add('active');
+            
+            if (map && routePolylines[route.routeId]) {
+                Object.values(routePolylines).forEach(polyline => {
+                    polyline.setStyle({ opacity: 0.3, weight: 2 });
+                });
+                routePolylines[route.routeId].setStyle({ opacity: 0.9, weight: 6 });
+                
+                const routeBuses = buses.filter(bus => bus.routeId === route.routeId);
+                
+                if (routeBuses.length > 0 || route.stops.length > 0) {
+                    const bounds = L.latLngBounds();
+                    routeBuses.forEach(bus => bounds.extend([bus.coordinates.lat, bus.coordinates.lng]));
+                    route.stops.forEach(stop => bounds.extend([stop.coordinates.lat, stop.coordinates.lng]));
+                    map.fitBounds(bounds, { padding: [50, 50] });
+                }
+            }
+            
+            showToast(`Selected route: ${route.routeName}`, 'info');
+        }
+
+        // Select a bus
+        function selectBus(bus) {
+            selectedBus = bus;
+            
+            document.querySelectorAll('.bus-item').forEach(item => item.classList.remove('selected'));
+            event.target.closest('.bus-item').classList.add('selected');
+            
+            if (map) {
+                map.setView([bus.coordinates.lat, bus.coordinates.lng], 15);
+                
+                if (busMarkers[bus.busNumber]) {
+                    busMarkers[bus.busNumber].openPopup();
+                }
+            }
+            
+            if (currentUser.role === 'passenger') {
+                updateETA(bus);
+            }
+            
+            showToast(`Selected bus: ${bus.busNumber}`, 'info');
+        }
+
+        // Update ETA (Passenger only)
+        function updateETA(bus) {
+            if (currentUser.role !== 'passenger' || !userLocation || !bus) return;
+            
+            const distance = calculateDistance(userLocation, bus.coordinates);
+            const avgSpeed = Math.max(5, bus.speed);
+            const eta = Math.ceil(distance / (avgSpeed / 60));
+            
+            const etaTimeElement = document.getElementById('etaTime');
+            const etaBusInfoElement = document.getElementById('etaBusInfo');
+            
+            if (etaTimeElement && etaBusInfoElement) {
+                etaTimeElement.textContent = eta;
+                const route = routes.find(r => r.routeId === bus.routeId);
+                etaBusInfoElement.textContent = `Bus #${bus.busNumber} (${route?.routeName || 'Unknown'}) arriving in ${eta} min`;
+            }
+        }
+
+        // Update stats based on user role
+        function updateStats() {
+            if (currentUser.role === 'passenger') {
+                const activeBuses = buses.filter(bus => bus.status === 'active').length;
+                const activeRoutes = routes.filter(r => r.isActive).length;
+                const avgWaitTime = Math.round(Math.random() * 10 + 5);
+                
+                const totalBusesEl = document.getElementById('totalBuses');
+                const totalRoutesEl = document.getElementById('totalRoutes');
+                const avgWaitTimeEl = document.getElementById('avgWaitTime');
+                
+                if (totalBusesEl) totalBusesEl.textContent = activeBuses;
+                if (totalRoutesEl) totalRoutesEl.textContent = activeRoutes;
+                if (avgWaitTimeEl) avgWaitTimeEl.textContent = avgWaitTime;
+            } else {
+                const totalTripsEl = document.getElementById('totalTrips');
+                const passengersServedEl = document.getElementById('passengersServed');
+                const avgSpeedEl = document.getElementById('avgSpeed');
+                
+                if (totalTripsEl) totalTripsEl.textContent = Math.floor(Math.random() * 30 + 20);
+                if (passengersServedEl) passengersServedEl.textContent = Math.floor(Math.random() * 200 + 100);
+                if (avgSpeedEl) avgSpeedEl.textContent = Math.round(buses.reduce((sum, bus) => sum + bus.speed, 0) / buses.length) || 0;
+            }
+        }
+
+        // Setup search functionality
+        function setupSearch() {
+            const searchInput = document.getElementById('searchInput');
+            if (!searchInput) return;
+            
+            searchInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                document.querySelectorAll('.route-item').forEach(item => {
+                    const routeName = item.getAttribute('data-route-name');
+                    const routeId = item.getAttribute('data-route-id');
+                    
+                    if (routeName.includes(searchTerm) || routeId.toLowerCase().includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+                
+                document.querySelectorAll('.bus-item').forEach(item => {
+                    const busNumber = item.getAttribute('data-bus-number');
+                    const routeName = item.getAttribute('data-route-name');
+                    
+                    if (busNumber.includes(searchTerm) || routeName.includes(searchTerm)) {
+                        item.style.display = 'block';
+                    } else {
+                        item.style.display = 'none';
+                    }
+                });
+            });
+        }
+
+        // Map control functions
+        function fitMapToAllBuses() {
+            if (!map || buses.length === 0) return;
+            
+            const bounds = L.latLngBounds();
+            buses.forEach(bus => bounds.extend([bus.coordinates.lat, bus.coordinates.lng]));
+            
+            if (userLocation) {
+                bounds.extend([userLocation.lat, userLocation.lng]);
+            }
+            
+            map.fitBounds(bounds, { padding: [50, 50] });
+            showToast('Map fitted to show all buses', 'info');
+        }
+
+        function centerOnUser() {
+            if (!map) return;
+            
+            if (userLocation) {
+                map.setView([userLocation.lat, userLocation.lng], 15);
+                showToast('Centered on your location', 'info');
+            } else {
+                showToast('Location not available. Please enable location access.', 'error');
+            }
+        }
+
+        function refreshMap() {
+            if (!map) return;
+            
+            try {
+                // Clear and reload all map data
+                displayAllBusesOnMap();
+                
+                // Force map refresh
+                map.invalidateSize();
+                
+                // Get fresh location if needed
+                if (currentUser && currentUser.role === 'driver' && navigator.geolocation) {
+                    navigator.geolocation.getCurrentPosition(
+                        (position) => {
+                            userLocation = {
+                                lat: position.coords.latitude,
+                                lng: position.coords.longitude
+                            };
+                            
+                            if (userMarker) {
+                                userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+                            }
+                        },
+                        (error) => {
+                            console.log('Location refresh failed:', error);
+                        }
+                    );
+                }
+                
+                showToast('Map refreshed', 'success');
+            } catch (error) {
+                console.error('Error refreshing map:', error);
+                showToast('Error refreshing map', 'error');
+            }
+        }
+
+        // Start location tracking for drivers
+        function startLocationTracking() {
+            if (currentUser.role === 'driver' && navigator.geolocation) {
+                if (watchId !== null) {
+                    navigator.geolocation.clearWatch(watchId);
+                }
+                
+                watchId = navigator.geolocation.watchPosition(
+                    (position) => {
+                        userLocation = {
+                            lat: position.coords.latitude,
+                            lng: position.coords.longitude
+                        };
+                        
+                        if (userMarker && map) {
+                            userMarker.setLatLng([userLocation.lat, userLocation.lng]);
+                        } else if (map) {
+                            const userIcon = createCustomIcon('fa-car', '#667eea');
+                            userMarker = L.marker([userLocation.lat, userLocation.lng], { icon: userIcon })
+                                .addTo(map)
+                                .bindPopup('Driver Location');
+                        }
+                        
+                        console.log('Driver location updated:', userLocation);
+                    },
+                    (error) => {
+                        console.error('Error getting location:', error);
+                        showToast('Error updating location', 'error');
+                    },
+                    {
+                        enableHighAccuracy: true,
+                        timeout: 10000,
+                        maximumAge: 0
+                    }
+                );
+            }
+        }
+
+        // Stop location tracking
+        function stopLocationTracking() {
+            if (watchId !== null) {
+                navigator.geolocation.clearWatch(watchId);
+                watchId = null;
+            }
+        }
+
+        // Calculate distance between two points (Haversine formula)
+        function calculateDistance(pos1, pos2) {
+            const R = 6371; // Earth's radius in km
+            const dLat = (pos2.lat - pos1.lat) * Math.PI / 180;
+            const dLon = (pos2.lng - pos1.lng) * Math.PI / 180;
+            const a = Math.sin(dLat/2) * Math.sin(dLat/2) +
+                      Math.cos(pos1.lat * Math.PI / 180) * Math.cos(pos2.lat * Math.PI / 180) *
+                      Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            return R * c;
+        }
+
+        // Start simulation for demo
+        function startSimulation() {
+            setInterval(() => {
+                buses.forEach((bus, index) => {
+                    if (bus.status === 'active') {
+                        const route = routes.find(r => r.routeId === bus.routeId);
+                        if (route && route.stops.length > 0) {
+                            const currentStopIndex = route.stops.findIndex(stop => stop.stopId === bus.nextStop);
+                            let targetStop;
+                            
+                            if (currentStopIndex >= 0) {
+                                targetStop = route.stops[currentStopIndex];
+                            } else {
+                                targetStop = route.stops[0];
+                                bus.nextStop = targetStop.stopId;
+                            }
+                            
+                            const latDiff = targetStop.coordinates.lat - bus.coordinates.lat;
+                            const lngDiff = targetStop.coordinates.lng - bus.coordinates.lng;
+                            
+                            const stepSize = 0.0005 * (bus.speed / 10);
+                            const distance = Math.sqrt(latDiff * latDiff + lngDiff * lngDiff);
+                            
+                            if (distance < stepSize * 2) {
+                                const nextStopIndex = (currentStopIndex + 1) % route.stops.length;
+                                bus.nextStop = route.stops[nextStopIndex].stopId;
+                            } else {
+                                bus.coordinates.lat += (latDiff / distance) * stepSize;
+                                bus.coordinates.lng += (lngDiff / distance) * stepSize;
+                            }
+                        }
+                        
+                        bus.speed = Math.max(5, Math.min(50, bus.speed + (Math.random() - 0.5) * 2));
+                        
+                        const occupancyChange = Math.floor((Math.random() - 0.4) * 3);
+                        bus.currentOccupancy = Math.max(0, Math.min(bus.capacity, 
+                            bus.currentOccupancy + occupancyChange));
+                            
+                        bus.lastUpdated = new Date();
+                    } else if (bus.status === 'idle') {
+                        bus.speed = Math.max(0, bus.speed - 2);
+                    }
+                });
+                
+                displayAllBusesOnMap();
+                displayBuses();
+                updateStats();
+                
+                // Update ETA if a bus is selected
+                if (selectedBus && currentUser.role === 'passenger') {
+                    const updatedBus = buses.find(b => b.busNumber === selectedBus.busNumber);
+                    if (updatedBus) {
+                        updateETA(updatedBus);
+                    }
+                }
+                
+            }, 5000);
+        }
+
+        // Initialize when DOM is ready
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show login screen by default
+            showLogin();
+        });
+
+        // Handle window resize for map
+        window.addEventListener('resize', function() {
+            if (map) {
+                setTimeout(() => {
+                    map.invalidateSize();
+                }, 100);
+            }
+        });
+    </script>
+</body>
+</html>
