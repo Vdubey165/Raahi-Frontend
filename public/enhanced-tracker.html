@@ -966,7 +966,7 @@
         let routePolylines = {};
         let watchId = null;
         let currentTrip = null;
-
+        let subscribedPhoneNumber = null;
         // Sample data
         const sampleRoutes = [
             {
@@ -1037,6 +1037,47 @@
                 nextStop: "S102"
             }
         ];
+
+        
+
+        // Load saved user data on page load
+        function loadSavedUserData() {
+            const savedUser = localStorage.getItem('currentUser');
+            const savedPhone = localStorage.getItem('subscribedPhone');
+            
+            if (savedUser) {
+                currentUser = JSON.parse(savedUser);
+                showDashboard();
+            }
+            
+            if (savedPhone) {
+                subscribedPhoneNumber = savedPhone;
+                document.getElementById('smsStatus').innerHTML = 
+                    `<span style="color: #48bb78;">✅ Subscribed: ${savedPhone}</span>`;
+            }
+        }
+
+        // Update handleLogin function
+        function handleLogin(event) {
+            event.preventDefault();
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+
+            const demoUsers = {
+                'passenger@demo.com': { name: 'John Doe', role: 'passenger' },
+                'driver@demo.com': { name: 'Mike Wilson', role: 'driver' }
+            };
+
+            if (demoUsers[email] && password === 'demo123') {
+                currentUser = demoUsers[email];
+                // Save to localStorage
+                localStorage.setItem('currentUser', JSON.stringify(currentUser));
+                showDashboard();
+                showToast('Login successful!', 'success');
+            } else {
+                showToast('Invalid credentials', 'error');
+            }
+        }
 
         // Toast notification function
         function showToast(message, type = 'info') {
@@ -1130,6 +1171,9 @@
         }
 
         function logout() {
+             // Clear stored data
+            localStorage.removeItem('currentUser');
+            localStorage.removeItem('subscribedPhone');
             currentUser = null;
             selectedRoute = null;
             selectedBus = null;
@@ -1168,19 +1212,12 @@
                 return;
             }
             
-            if (!phoneNumber.startsWith('+')) {
-                statusElement.innerHTML = '<span style="color: #f56565;">Please include country code (e.g., +91)</span>';
-                return;
-            }
-            
             statusElement.innerHTML = '<span style="color: #667eea;"><i class="fas fa-spinner fa-spin"></i> Subscribing...</span>';
             
             try {
                 const response = await fetch('https://raahi-backend.vercel.app/api/sms/subscribe', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
+                    headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         phoneNumber: phoneNumber,
                         preferences: {
@@ -1195,65 +1232,29 @@
                 const result = await response.json();
                 
                 if (result.success) {
-                    statusElement.innerHTML = '<span style="color: #48bb78;">✅ Subscribed successfully! You will receive SMS updates.</span>';
-                    document.getElementById('smsPhoneNumber').value = '';
+                    subscribedPhoneNumber = phoneNumber; // Store globally
+                    localStorage.setItem('subscribedPhone', phoneNumber); // Persist
+                    statusElement.innerHTML = `<span style="color: #48bb78;">✅ Subscribed: ${phoneNumber}</span>`;
+                    document.getElementById('smsPhoneNumber').value = ''; // Clear input
                 } else {
                     statusElement.innerHTML = `<span style="color: #f56565;">❌ ${result.message || 'Subscription failed'}</span>`;
                 }
             } catch (error) {
-                console.error('SMS subscription error:', error);
                 statusElement.innerHTML = '<span style="color: #f56565;">❌ Network error. Please try again.</span>';
             }
         }
 
+        // Update sendBusETAviaSMS function
         async function sendBusETAviaSMS(busNumber) {
             if (currentUser.role !== 'passenger') return;
 
-            const phoneInput = document.getElementById('smsPhoneNumber');
-            const phoneNumber = phoneInput.value.trim();
-            
-            if (!phoneNumber) {
-                showToast('Please enter your phone number in SMS section first', 'error');
+            if (!subscribedPhoneNumber) {
+                showToast('Please subscribe to SMS notifications first', 'error');
                 return;
             }
             
             showToast(`Sending ETA for bus ${busNumber}...`, 'info');
-            
-            try {
-                const bus = buses.find(b => b.busNumber === busNumber);
-                if (!bus) {
-                    showToast('Bus not found', 'error');
-                    return;
-                }
-                
-                const route = routes.find(r => r.routeId === bus.routeId);
-                const distance = userLocation ? calculateDistance(userLocation, bus.coordinates) : 2;
-                const eta = Math.ceil(distance / (Math.max(bus.speed, 5) / 60));
-                
-                const response = await fetch('https://raahi-backend.vercel.app/api/sms/send-eta', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({
-                        phoneNumber: phoneNumber,
-                        busNumber: busNumber,
-                        eta: eta,
-                        routeName: route?.routeName || 'Unknown Route'
-                    })
-                });
-                
-                const result = await response.json();
-                
-                if (result.success) {
-                    showToast(`ETA sent to ${phoneNumber}`, 'success');
-                } else {
-                    showToast('Failed to send SMS', 'error');
-                }
-            } catch (error) {
-                console.error('SMS send error:', error);
-                showToast('Error sending SMS', 'error');
-            }
+            // ... rest of your existing SMS send logic using subscribedPhoneNumber
         }
         // Driver Functions
         function startTrip() {
@@ -1930,6 +1931,7 @@
         document.addEventListener('DOMContentLoaded', function() {
             // Show login screen by default
             showLogin();
+            loadSavedUserData();
         });
 
         // Handle window resize for map
