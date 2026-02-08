@@ -329,7 +329,7 @@
         /* Content Grid */
         .content-grid {
             display: grid;
-            grid-template-columns: 1fr 380px;
+            grid-template-columns: 1fr 420px;
             gap: 20px;
             height: calc(100vh - 140px);
         }
@@ -401,6 +401,20 @@
             flex-direction: column;
             gap: 16px;
             overflow-y: auto;
+            max-height: calc(100vh - 140px);
+        }
+
+        .sidebar::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: var(--border);
+            border-radius: 3px;
         }
 
         /* Panel Styles */
@@ -431,7 +445,7 @@
         }
 
         .panel-content {
-            max-height: 320px;
+            max-height: 280px;
             overflow-y: auto;
         }
 
@@ -474,13 +488,18 @@
             color: var(--text-primary);
             margin-bottom: 8px;
             font-size: 15px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 8px;
+            flex-wrap: wrap;
         }
 
         .route-info, .bus-info {
             font-size: 13px;
             color: var(--text-secondary);
             display: flex;
-            gap: 16px;
+            gap: 12px;
             flex-wrap: wrap;
         }
 
@@ -488,6 +507,7 @@
             display: flex;
             align-items: center;
             gap: 4px;
+            white-space: nowrap;
         }
 
         .status-badge {
@@ -714,6 +734,12 @@
         }
 
         /* Responsive Design */
+        @media (max-width: 1400px) {
+            .content-grid {
+                grid-template-columns: 1fr 400px;
+            }
+        }
+
         @media (max-width: 1200px) {
             .content-grid {
                 grid-template-columns: 1fr;
@@ -722,6 +748,7 @@
 
             .sidebar {
                 grid-row: 1;
+                max-height: none;
             }
 
             .map-section {
