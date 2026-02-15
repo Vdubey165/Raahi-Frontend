@@ -1393,17 +1393,60 @@
         }
 
         // Update sendBusETAviaSMS function
-        async function sendBusETAviaSMS(busNumber) {
-            if (currentUser.role !== 'passenger') return;
+       async function sendBusETAviaSMS(busNumber) {
+    console.log('=== FRONTEND SEND ETA DEBUG ===');
+    console.log('subscribedPhoneNumber:', subscribedPhoneNumber);
+    console.log('busNumber:', busNumber);
+    console.log('currentUser.role:', currentUser.role);
+    
+    if (currentUser.role !== 'passenger') return;
 
-            if (!subscribedPhoneNumber) {
-                showToast('Please subscribe to SMS notifications first', 'error');
-                return;
-            }
-            
-            showToast(`Sending ETA for bus ${busNumber}...`, 'info');
-            // ... rest of your existing SMS send logic using subscribedPhoneNumber
+    if (!subscribedPhoneNumber) {
+        showToast('Please subscribe to SMS notifications first', 'error');
+        return;
+    }
+    
+    showToast(`Sending ETA for bus ${busNumber}...`, 'info');
+    
+    try {
+        const bus = buses.find(b => b.busNumber === busNumber);
+        if (!bus) {
+            showToast('Bus not found', 'error');
+            return;
         }
+        
+        const route = routes.find(r => r.routeId === bus.routeId);
+        const distance = userLocation ? calculateDistance(userLocation, bus.coordinates) : 2;
+        const eta = Math.ceil(distance / (Math.max(bus.speed, 5) / 60));
+        
+        console.log('Making API call to backend...');
+        const response = await fetch('https://raahi-backend.vercel.app/api/sms/send-eta', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                phoneNumber: subscribedPhoneNumber,
+                busNumber: busNumber,
+                eta: eta,
+                routeName: route?.routeName || 'Unknown Route'
+            })
+        });
+        
+        console.log('Response status:', response.status);
+        const result = await response.json();
+        console.log('Response data:', result);
+        
+        if (result.success) {
+            showToast(`ETA sent to ${subscribedPhoneNumber}`, 'success');
+        } else {
+            showToast('Failed to send SMS: ' + (result.error || result.message), 'error');
+        }
+    } catch (error) {
+        console.error('SMS send error:', error);
+        showToast('Error sending SMS: ' + error.message, 'error');
+    }
+}
         // Driver Functions
         function startTrip() {
             if (currentUser.role !== 'driver') return;
